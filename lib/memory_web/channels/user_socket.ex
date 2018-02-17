@@ -2,7 +2,7 @@ defmodule MemoryWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", MemoryWeb.RoomChannel
+  channel "games:*", MemoryWeb.RoomChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket

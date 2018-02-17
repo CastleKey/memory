@@ -2,16 +2,23 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from 'reactstrap';
 
-export default function run_demo(root) {
-  ReactDOM.render(<Demo side={0}/>, root);
+export default function run_demo(root, channel) {
+  ReactDOM.render(<Demo channel={channel} />, root);
 }
 
+
 class Demo extends React.Component {
+
   constructor(props) {
     super(props);
+    console.log("Made it to constructor");
+    // New stuff
+    this.channel = props.channel;
     this.state = {
-      delts: Array(16).fill(0),
-      locks: Array(16).fill(0),
+      guesscorrected: [],
+      lockedBlocks: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+      clickedBlocks: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+      letterBlocks: ["A", "B", "C", "D", "E", "F", "G", "H", "A", "B", "C", "D", "E", "F", "G", "H"],
       clickCount: 0,
       stepNumber: 0,
       letterOne: "",
@@ -21,199 +28,54 @@ class Demo extends React.Component {
     };
   }
 
-
-  toggle(number, value) {
-
-    var lockChange = this.state.locks;
-    var deltsChange = this.state.delts;
-
-    var clickChange = this.state.clickCount + 1;
-    var stepChange = this.state.stepNumber;
-    var letterChange = this.state.letterOne;
-    var letterChange2 = this.state.letterTwo;
-    var numberChange = this.state.numberOne;
-    var numberChange2 = this.state.numberTwo;
-
-    var minus1 = number - 1;
-    var minus2 = this.state.numberOne - 1;
-    var minus3 = this.state.numberTwo - 1;
-
-    var tempDelt = this.state.delts;
-    var reverseDelt = +!this.state.delts[minus1];
-    tempDelt[minus1] = reverseDelt
-
-    if (this.state.stepNumber == 1) {
-      if (this.state.letterOne == value) {
-        lockChange[minus1] = 1;
-        lockChange[minus2] = 1;
-        stepChange = 0;
-        letterChange = "";
-        letterChange2 = "";
-        numberChange = 20;
-        numberChange2 = 25;
-
-
-        this.setState({
-          side: 0,
-          delts: deltsChange,
-          locks: lockChange,
-          clickCount: clickChange,
-          stepNumber: stepChange,
-          letterOne: letterChange,
-          letterTwo: letterChange2,
-          numberOne: numberChange,
-          numberTwo: numberChange2
-        })
-      }
-      deltsChange[minus1] = 1;
-      deltsChange[minus2] = 1;
-      stepChange = 2;
-      letterChange = value;
-      letterChange2 = this.state.letterOne;
-      numberChange = number;
-      numberChange2 = this.state.numberOne;
-
-      this.setState({
-        side: 0,
-        delts: deltsChange,
-        locks: lockChange,
-        clickCount: clickChange,
-        stepNumber: stepChange,
-        letterOne: letterChange,
-        letterTwo: letterChange2,
-        numberOne: numberChange,
-        numberTwo: numberChange2
-      })
-
-      setTimeout( () => this.wait(), 1000);
-    }
-    else if (this.state.stepNumber == 2) {
-      deltsChange[minus1] = 1;
-      deltsChange[minus2] = 0;
-      deltsChange[minus3] = 0;
-      stepChange = 1;
-      letterChange = value;
-      letterChange2 = "";
-      numberChange = number;
-      numberChange2 = 25;
-
-      this.setState({
-        side: 0,
-        delts: deltsChange,
-        locks: lockChange,
-        clickCount: clickChange,
-        stepNumber: stepChange,
-        letterOne: letterChange,
-        letterTwo: letterChange2,
-        numberOne: numberChange,
-        numberTwo: numberChange2
-      });
-    }
-    else {
-      const first = this.state.delts;
-      const hard = this.state.delts[minus1];
-      stepChange = 1;
-      letterChange = value;
-      letterChange2 = "";
-      numberChange = number;
-      numberChange2 = 25;
-
-      var reverse = +!this.state.delts[minus1];
-      first[minus1] = 1;
-      deltsChange[minus1] = 1;
-
-      this.setState({
-        side: 0,
-        delts: deltsChange,
-        locks: lockChange,
-        clickCount: clickChange,
-        stepNumber: stepChange,
-        letterOne: letterChange,
-        letterTwo: letterChange2,
-        numberOne: numberChange,
-        numberTwo: numberChange2
-      });
-
-
-
-    }
+  gotView(view) {
+    console.log("New view", view);
+    this.setState(view.game);
   }
 
-  wait() {
-    var deltsChange = this.state.delts;
-    var stepChange = this.state.stepNumber;
-
-    var numberChange1 = this.state.numberOne;
-    var numberChange2 = this.state.numberTwo;
-
-    var minus1 = numberChange1 - 1;
-    var minus2 = numberChange2 - 1;
-
-    deltsChange[minus1] = 0;
-    deltsChange[minus2] = 0;
-
-    this.setState({
-      side: 0,
-      delts: deltsChange,
-      locks: this.state.locks,
-      clickCount: this.state.clickCount,
-      stepNumber: 0,
-      letterOne: "",
-      letterTwo: "",
-      numberOne: 20,
-      numberTwo: 25
-    });
+  sendClick(number) {
+    console.log("Sending click");
+    this.channel.push("guess", { number1: number })
+        .receive("ok", this.gotView.bind(this));
   }
 
-  reset() {
-    this.setState({
-      side: 0,
-      delts: Array(16).fill(0),
-      locks: Array(16).fill(0),
-      clickCount: 0,
-      stepNumber: 0,
-      letterOne: "",
-      letterTwo: "",
-      numberOne: 20,
-      numberTwo: 25,
-    });
+  sendReset() {
+    console.log("Sending reset");
+    this.channel.push("reset")
+        .receive("ok", this.gotView.bind(this));
   }
 
 
   render() {
-    var toggle = this.toggle.bind(this);
-    var reset = this.reset.bind(this);
-    var wait = this.wait.bind(this);
     return (
       <div>
         <div className="row">
-          <Side show={this.state.delts[0] == 0} lock={this.state.locks[0] == 0} toggle={toggle} number={1} value={"A"}/>
-          <Side show={this.state.delts[1] == 0} lock={this.state.locks[1] == 0} toggle={toggle} number={2} value={"B"}/>
-          <Side show={this.state.delts[2] == 0} lock={this.state.locks[2] == 0} toggle={toggle} number={3} value={"C"}/>
-          <Side show={this.state.delts[3] == 0} lock={this.state.locks[3] == 0} toggle={toggle} number={4} value={"D"}/>
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock1} locked={this.state.block1} number={0} value={"A"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock2} locked={this.state.block2} number={1} value={"B"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock3} locked={this.state.block3} number={2} value={"C"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock4} locked={this.state.block4} number={3} value={"D"} />
         </div>
         <div className="row">
-          <Side show={this.state.delts[4] == 0} lock={this.state.locks[4] == 0} toggle={toggle} number={5} value={"E"}/>
-          <Side show={this.state.delts[5] == 0} lock={this.state.locks[5] == 0} toggle={toggle} number={6} value={"F"}/>
-          <Side show={this.state.delts[6] == 0} lock={this.state.locks[6] == 0} toggle={toggle} number={7} value={"G"}/>
-          <Side show={this.state.delts[7] == 0} lock={this.state.locks[7] == 0} toggle={toggle} number={8} value={"H"}/>
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock5} locked={this.state.block5} number={4} value={"E"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock6} locked={this.state.block6} number={5} value={"F"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock7} locked={this.state.block7} number={6} value={"G"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock8} locked={this.state.block8} number={7} value={"H"} />
         </div>
         <div className="row">
-          <Side show={this.state.delts[8] == 0} lock={this.state.locks[8] == 0} toggle={toggle} number={9} value={"A"}/>
-          <Side show={this.state.delts[9] == 0} lock={this.state.locks[9] == 0} toggle={toggle} number={10} value={"B"}/>
-          <Side show={this.state.delts[10] == 0} lock={this.state.locks[10] == 0} toggle={toggle} number={11} value={"C"}/>
-          <Side show={this.state.delts[11] == 0} lock={this.state.locks[11] == 0} toggle={toggle} number={12} value={"D"}/>
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock9} locked={this.state.block9} number={8} value={"A"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock10} locked={this.state.block10} number={9} value={"B"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock11} locked={this.state.block11} number={10} value={"C"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock12} locked={this.state.block12} number={11} value={"D"} />
         </div>
         <div className="row">
-          <Side show={this.state.delts[12] == 0} lock={this.state.locks[12] == 0} toggle={toggle} number={13} value={"E"}/>
-          <Side show={this.state.delts[13] == 0} lock={this.state.locks[13] == 0} toggle={toggle} number={14} value={"F"}/>
-          <Side show={this.state.delts[14] == 0} lock={this.state.locks[14] == 0} toggle={toggle} number={15} value={"G"}/>
-          <Side show={this.state.delts[15] == 0} lock={this.state.locks[15] == 0} toggle={toggle} number={16} value={"H"}/>
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock13} locked={this.state.block13} number={12} value={"E"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock14} locked={this.state.block14} number={13} value={"F"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock15} locked={this.state.block15} number={14} value={"G"} />
+          <Blocks state={this.state} click={this.sendClick.bind(this)} clicked={this.state.lock16} locked={this.state.block16} number={15} value={"H"} />
         </div>
         <div className="row">
           <div id="side-0" className="side col">
-            <Button type="button" color="warning" onClick={ () => reset()}>Reset Game</Button>
-            <Button type="button" color="info" disabled>Click Count: {this.state.clickCount}</Button>
+            <Clicks state={this.state} reset={this.sendReset.bind(this)} />
           </div>
         </div>
       </div>
@@ -221,21 +83,22 @@ class Demo extends React.Component {
   }
 }
 
-function Side(params) {
-  if (!params.lock) {
+function Blocks(params) {
+  let state = params.state;
+  if (params.clicked == 1) {
     return (
       <div id="side-0"className="side col">
-        <Button type="button" color="success" number={params.number} onClick={ () => params.toggle(params.number, params.value) } disabled>
+        <Button type="button" color="success" number={params.number} onClick={ () => params.click(params.number) } disabled>
           {params.value}
         </Button>
       </div>
     );
   }
-  else if (params.show) {
+  else if (params.locked == 1) {
     return (
-      <div id="side-0" className="side col">
-        <Button type="button" color="primary" number={params.number} onClick={ () => params.toggle(params.number, params.value) }>
-          {params.number}
+      <div id="side-0"className="side col">
+        <Button type="button" color="danger" number={params.number} onClick={ () => params.click(params.number) } disabled>
+          {params.value}
         </Button>
       </div>
     );
@@ -243,10 +106,19 @@ function Side(params) {
   else {
     return (
       <div id="side-0"className="side col">
-        <Button type="button" color="danger" number={params.number} onClick={ () => params.toggle(params.number, params.value) } disabled>
-          {params.value}
+        <Button type="button" color="primary" number={params.number} onClick={ () => params.click(params.number) } >
+          {params.number}
         </Button>
       </div>
     );
   }
+}
+
+function Clicks(params) {
+  let state = params.state;
+
+  return <div>
+    <Button type="button" color="info" disabled>Click Count: {state.clicks}</Button>
+    <Button type="button" color="warning" onClick={params.reset}>Reset Game</Button>
+  </div>;
 }
